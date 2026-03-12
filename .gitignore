@@ -1,34 +1,5 @@
 # Environment file
-.env
-
-
-
-# Root Python files to ignore
-/build_gateway.py
-/build_gw.py
-/build_gw2.py
-/build_gw3.py
-/build_gw4.py
-/build_gw5.py
-/build_gw_complete.py
-/build_gw_final.py
-/build_gw_working.py
-/build_llm.py
-/build_rag.py
-/create_gateway.py
-/fix_gateway.py
-/make_gateway.py
-/make_gw.py
-/run_gateway.py
-/write_gateway.py
-/write_gateway2.py
-/write_gateway3.py
-/write_gateway_clean.py
-/write_gateway_final.py
-/write_gw1.py
-/write_rag.py
-/write_rag_complete.py
-
+# .env
 
 # Python cache
 __pycache__/
