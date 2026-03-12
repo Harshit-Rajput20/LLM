@@ -7,18 +7,24 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.responses import JSONResponse
 import uvicorn
 import os
+import io
 from pathlib import Path
 from typing import List
 import uuid
 import numpy as np
 
-# Local imports
-from .models import IngestionRequest, RetrievalRequest, IngestionResponse, RetrievalResult
-from .document_parser import DocumentParser
-from .chunker import chunk_text
-from .embedding_generator import get_embedding_generator
-from .vector_store import get_vector_store
-from .retriever import retrieve_documents
+# Local imports (absolute imports for Docker)
+import models
+from document_parser import DocumentParser
+from chunker import chunk_text
+from embedding_generator import get_embedding_generator
+from vector_store import get_vector_store
+from retriever import retrieve_documents
+
+IngestionRequest = models.IngestionRequest
+RetrievalRequest = models.RetrievalRequest
+IngestionResponse = models.IngestionResponse
+RetrievalResult = models.RetrievalResult
 
 
 app = FastAPI(title="Production RAG Service", version="1.0.0")
@@ -104,7 +110,7 @@ async def ingest_file(
         if not upload_filename:
             upload_filename = "uploaded_document"
         
-        # Parse document
+        # Parse document - pass bytes directly (parsers handle conversion)
         text_content = DocumentParser.parse(upload_filename, content)
         
         if not text_content.strip():

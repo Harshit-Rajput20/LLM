@@ -2,6 +2,7 @@
 
 from typing import List, Dict
 import tiktoken
+import re
 
 
 class TextChunker:

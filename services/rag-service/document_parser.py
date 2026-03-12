@@ -1,10 +1,10 @@
 """Document parser supporting PDF, TXT, MD, DOCX formats."""
 
 import os
+import io
 from typing import List, Dict
 from pypdf import PdfReader
 from docx import Document
-from bs4 import BeautifulSoup
 import re
 
 
@@ -12,10 +12,22 @@ class DocumentParser:
     """Parses various document formats into clean text."""
     
     @staticmethod
-    def parse_pdf(file_content: bytes, filename: str) -> str:
+    def get_bytes(file_content):
+        """Convert file_content to bytes consistently."""
+        if hasattr(file_content, 'read'):
+            content_bytes = file_content.read()
+            if hasattr(file_content, 'seek'):
+                file_content.seek(0)  # Reset for other parsers
+        else:
+            content_bytes = file_content
+        return content_bytes
+    
+    @staticmethod
+    def parse_pdf(file_content, filename: str) -> str:
         """Extract text from PDF file."""
         try:
-            reader = PdfReader(file_content)
+            content_bytes = DocumentParser.get_bytes(file_content)
+            reader = PdfReader(io.BytesIO(content_bytes))
             text = ""
             for page in reader.pages:
                 page_text = page.extract_text()
@@ -27,24 +39,35 @@ class DocumentParser:
             return ""
     
     @staticmethod
-    def parse_txt(file_content: bytes, filename: str) -> str:
+    def parse_txt(file_content, filename: str) -> str:
         """Extract text from TXT file."""
-        return DocumentParser._clean_text(file_content.decode('utf-8', errors='ignore'))
+        try:
+            content_bytes = DocumentParser.get_bytes(file_content)
+            return DocumentParser._clean_text(content_bytes.decode('utf-8', errors='ignore'))
+        except Exception as e:
+            print(f"TXT parsing error: {e}")
+            return ""
     
     @staticmethod
-    def parse_md(file_content: bytes, filename: str) -> str:
+    def parse_md(file_content, filename: str) -> str:
         """Extract text from Markdown file (strip markdown syntax)."""
-        text = file_content.decode('utf-8', errors='ignore')
-        # Basic markdown stripping
-        text = re.sub(r'#{1,6}\s*', '', text)
-        text = re.sub(r'\*\*(.*?)\*\*|\*(.*?)\*', r'\1\2', text)
-        return DocumentParser._clean_text(text)
+        try:
+            content_bytes = DocumentParser.get_bytes(file_content)
+            text = content_bytes.decode('utf-8', errors='ignore')
+            # Basic markdown stripping
+            text = re.sub(r'#{1,6}\s*', '', text)
+            text = re.sub(r'\*\*(.*?)\*\*|\*(.*?)\*', r'\1\2', text)
+            return DocumentParser._clean_text(text)
+        except Exception as e:
+            print(f"MD parsing error: {e}")
+            return ""
     
     @staticmethod
-    def parse_docx(file_content: bytes, filename: str) -> str:
+    def parse_docx(file_content, filename: str) -> str:
         """Extract text from DOCX file."""
         try:
-            doc = Document(file_content)
+            content_bytes = DocumentParser.get_bytes(file_content)
+            doc = Document(io.BytesIO(content_bytes))
             text = "\n".join([paragraph.text for paragraph in doc.paragraphs])
             return DocumentParser._clean_text(text)
         except Exception as e:
@@ -52,7 +75,7 @@ class DocumentParser:
             return ""
     
     @staticmethod
-    def parse(filename: str, file_content: bytes) -> str:
+    def parse(filename: str, file_content) -> str:
         """Parse document based on file extension."""
         ext = os.path.splitext(filename.lower())[1]
         

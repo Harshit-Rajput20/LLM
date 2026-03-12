@@ -1,7 +1,7 @@
 """Embedding generation using sentence-transformers."""
 
 from sentence_transformers import SentenceTransformer
-from typing import List
+from typing import List, Dict
 import numpy as np
 import os
 import torch
