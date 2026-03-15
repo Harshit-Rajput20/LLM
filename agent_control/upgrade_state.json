@@ -1,0 +1,17 @@
+{
+ "upgrade_target": "rag_microservice_v2",
+ "phase": "planning",
+ "current_task": "",
+ "tasks": {
+  "architecture_validation": "pending",
+  "infra_setup": "pending",
+  "docker_update": "pending",
+  "storage_layer": "pending",
+  "ingestion_pipeline": "pending",
+  "retrieval_pipeline": "pending",
+  "hybrid_search": "pending",
+  "reranker": "pending",
+  "caching_layer": "pending",
+  "integration_tests": "pending"
+ }
+}

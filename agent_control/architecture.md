@@ -17,7 +17,7 @@ Additional services will be added later.
 Full architecture diagram:
 
 ```mermaid
- flowchart TB
+flowchart TB
 
 %% ----------------------
 %% CLIENT LAYER
@@ -31,7 +31,7 @@ end
 A --> A1
 
 %% ----------------------
-%% EDGE / ENTRY LAYER
+%% EDGE LAYER
 %% ----------------------
 
 subgraph Edge Layer
@@ -43,10 +43,10 @@ A1 --> B
 B --> C
 
 %% ----------------------
-%% AUTHENTICATION SERVICE
+%% AUTH SERVICE
 %% ----------------------
 
-subgraph Authentication Microservice
+subgraph Authentication Service
 D[Auth Service]
 D1[(Users Table)]
 D2[(Sessions Table)]
@@ -61,7 +61,7 @@ D --> D2
 %% ----------------------
 
 subgraph Chat Gateway Service
-E[Chat API Service]
+E[Chat API]
 E1[Request Validator]
 E2[Rate Limiter]
 E3[Request Tracker]
@@ -73,36 +73,55 @@ E1 --> E2
 E2 --> E3
 
 %% ----------------------
-%% DATABASE STORAGE
+%% QUIZ SERVICE
+%% ----------------------
+
+subgraph Quiz Generation Service
+Q1[Quiz API]
+Q2[Quiz Validator]
+Q3[Quiz Job Creator]
+end
+
+C --> Q1
+Q1 --> Q2
+Q2 --> Q3
+
+%% ----------------------
+%% DATABASES
 %% ----------------------
 
 subgraph Database Layer
-F[(Conversations Table)]
-G[(Messages Table)]
-H[(Analytics / Token Usage)]
+F[(Conversations)]
+G[(Messages)]
+H[(Analytics)]
+QDB[(Quiz Table)]
+QQ[(Quiz Questions)]
+META[(Document Metadata DB)]
 end
 
 E3 --> F
 E3 --> G
+Q3 --> QDB
 
 %% ----------------------
-%% QUEUE SYSTEM
+%% QUEUE
 %% ----------------------
 
-subgraph Async Processing
-I[Message Queue\nKafka / Redis / RabbitMQ]
+subgraph Async Queue
+I[Kafka / Redis / RabbitMQ]
 end
 
 E3 --> I
+Q3 --> I
 
 %% ----------------------
-%% WORKER CLUSTER
+%% WORKERS
 %% ----------------------
 
-subgraph LLM Worker Cluster
-J[Worker Instance 1]
-K[Worker Instance 2]
-L[Worker Instance N]
+subgraph Worker Cluster
+J[Worker 1]
+K[Worker 2]
+L[Worker N]
 end
 
 I --> J
@@ -110,7 +129,7 @@ I --> K
 I --> L
 
 %% ----------------------
-%% CONTEXT BUILDER
+%% CONTEXT MANAGER
 %% ----------------------
 
 subgraph Context Manager
@@ -126,26 +145,69 @@ M --> G
 M --> N
 
 %% ----------------------
-%% RAG PIPELINE
+%% RAG INGESTION PIPELINE
 %% ----------------------
 
-subgraph RAG Pipeline
-O[Embedding Generator]
-P[Vector Search]
-Q[Knowledge Retrieval]
+subgraph RAG Ingestion Pipeline
+RI1[Document Parser]
+RI2[Document Cleaner]
+RI3[Semantic Chunker]
+RI4[Metadata Extractor]
+RI5[Embedding Generator]
 end
 
-N --> O
-O --> P
-P --> Q
+RI1 --> RI2
+RI2 --> RI3
+RI3 --> RI4
+RI4 --> RI5
 
-%% Vector DB
+%% ----------------------
+%% RAG STORAGE
+%% ----------------------
 
-subgraph Vector Database
-R[(Vector DB\nPinecone / Weaviate)]
+subgraph RAG Storage Layer
+DOC[(Document Storage\nS3 / MinIO)]
+VDB[(Vector Database\nFAISS / Qdrant / Pinecone)]
+KDB[(Keyword Index\nElasticsearch)]
 end
 
-P --> R
+RI3 --> DOC
+RI4 --> META
+RI5 --> VDB
+RI4 --> KDB
+
+%% ----------------------
+%% RAG RETRIEVAL PIPELINE
+%% ----------------------
+
+subgraph RAG Retrieval Pipeline
+RR1[Query Processor]
+RR2[Query Expansion]
+RR3[Hybrid Retrieval]
+
+RR4[Vector Search]
+RR5[Keyword Search]
+
+RR6[Candidate Merger]
+RR7[Reranker Model]
+RR8[Context Builder]
+end
+
+N --> RR1
+RR1 --> RR2
+RR2 --> RR3
+
+RR3 --> RR4
+RR3 --> RR5
+
+RR4 --> VDB
+RR5 --> KDB
+
+RR4 --> RR6
+RR5 --> RR6
+
+RR6 --> RR7
+RR7 --> RR8
 
 %% ----------------------
 %% PROMPT BUILDER
@@ -153,13 +215,14 @@ P --> R
 
 subgraph Prompt Construction
 S[Prompt Builder]
+SQ[Quiz Prompt Builder]
 end
 
-Q --> S
-N --> S
+RR8 --> S
+RR8 --> SQ
 
 %% ----------------------
-%% LLM API
+%% LLM PROVIDER
 %% ----------------------
 
 subgraph LLM Provider
@@ -167,12 +230,13 @@ T[LLM API]
 end
 
 S --> T
+SQ --> T
 
 %% ----------------------
-%% STREAMING RESPONSE
+%% CHAT RESPONSE
 %% ----------------------
 
-subgraph Response Processing
+subgraph Chat Response
 U[Token Stream Handler]
 V[Response Assembler]
 end
@@ -181,14 +245,33 @@ T --> U
 U --> V
 
 %% ----------------------
-%% STORE RESPONSE
+%% QUIZ PIPELINE
 %% ----------------------
 
-V --> G
-V --> H
+subgraph Quiz Pipeline
+QW[Quiz Generator]
+QF[Quiz Formatter]
+QP[PDF Generator]
+end
+
+T --> QW
+QW --> QF
+QF --> QP
 
 %% ----------------------
-%% STREAM BACK TO USER
+%% QUIZ STORAGE
+%% ----------------------
+
+subgraph Quiz Storage
+QS[(PDF Storage)]
+end
+
+QF --> QQ
+QP --> QS
+QP --> QDB
+
+%% ----------------------
+%% DELIVERY
 %% ----------------------
 
 subgraph Realtime Delivery
@@ -198,14 +281,21 @@ end
 V --> W
 W --> A1
 
+subgraph Quiz Delivery
+QD[Quiz Download API]
+end
+
+QS --> QD
+QD --> A1
+
 %% ----------------------
 %% OBSERVABILITY
 %% ----------------------
 
-subgraph Monitoring & Observability
-X[Metrics Collector]
-Y[Logging System]
-Z[Tracing System]
+subgraph Monitoring
+X[Metrics]
+Y[Logs]
+Z[Tracing]
 end
 
 E --> X

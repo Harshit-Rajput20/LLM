@@ -7,7 +7,8 @@ Completed Tasks:
 
 - Phase 1: Repository Initialization - COMPLETE
 - Phase 2: API Gateway - COMPLETE
-- **Phase 3: RAG Service - PRODUCTION READY ✅**
+Phase 3 — RAG Service: v1 Semantic Retrieval COMPLETE
+Phase 3.1 — RAG Upgrade to Hybrid Retrieval Architecture IN PROGRESS
   - Full semantic RAG pipeline implemented:
     - Document parsing: PDF, TXT, MD, DOCX (pypdf, docx, bs4)
     - Text chunking: 500 tokens with 50 overlap (tiktoken)
