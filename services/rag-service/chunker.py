@@ -3,7 +3,7 @@
 from typing import List, Dict
 import tiktoken
 import re
-
+import uuid
 
 class TextChunker:
     """Chunks text into overlapping segments."""
@@ -38,7 +38,8 @@ class TextChunker:
                 # Save current chunk
                 if current_chunk.strip():
                     chunks.append({
-                        "chunk_id": f"{document_id}_{chunk_num}",
+                        "chunk_id": str(uuid.uuid4()),
+                        "chunk_index": chunk_num,
                         "document_id": document_id,
                         "filename": filename,
                         "text": current_chunk.strip(),
@@ -56,7 +57,8 @@ class TextChunker:
         # Add final chunk
         if current_chunk.strip():
             chunks.append({
-                "chunk_id": f"{document_id}_{chunk_num}",
+                "chunk_id": str(uuid.uuid4()),
+                "chunk_index": chunk_num,
                 "document_id": document_id,
                 "filename": filename,
                 "text": current_chunk.strip(),
@@ -71,7 +73,6 @@ class TextChunker:
         # Simple sentence splitting
         sentences = re.split(r'(?<=[.!?])\s+', text)
         return [s.strip() for s in sentences if s.strip()]
-
 
 def chunk_text(text: str, document_id: str, filename: str, chunk_size: int = 500, chunk_overlap: int = 50, metadata: Dict = None) -> List[Dict]:
     """Convenience function for chunking."""

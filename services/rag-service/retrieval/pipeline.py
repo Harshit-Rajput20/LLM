@@ -11,41 +11,62 @@ from cache.redis_client import get_cache_client
 import hashlib
 
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 async def retrieve_pipeline(query: str, top_k: int = 5, hybrid: bool = True) -> dict:
     """Hybrid retrieval."""
+    logger.info(f"Starting hybrid retrieval: query='{query[:50]}...', top_k={top_k}, hybrid={hybrid}")
+
     
+    logger.info("Checking cache")
     cache_client = await get_cache_client()
     cache_key = f"hybrid_query:{hashlib.sha256(f'{query}:{top_k}:{hybrid}'.encode()).hexdigest()}"
     cached = await cache_client.get(cache_key)
     if cached:
+        logger.info("Cache hit")
         return json.loads(cached)
+    logger.info("Cache miss - computing")
+
     
+    logger.info(f"Generating query embedding")
     embedding_gen = get_embedding_generator()
     query_emb = embedding_gen.encode_single(query).tolist()
     
-    # Vector search
+    logger.info(f"Vector search top_k={settings.vector_top_k}")
     v_store = await get_vector_store()
     vector_results = await v_store.search(query_emb, settings.vector_top_k)
+    logger.info(f"Got {len(vector_results)} vector results")
+
     
+    logger.info(f"Hybrid={hybrid}, vector_results={len(vector_results)}")
     if not hybrid:
+        logger.info("Pure vector retrieval")
         final_docs = [r["payload"]["text"] for r in vector_results[:top_k]]
         scores = [r["score"] for r in vector_results[:top_k]]
         results = {"documents": final_docs, "scores": scores}
     else:
+        logger.info("Hybrid mode - keyword + rerank")
+
         # Keyword search
+        logger.info(f"Keyword search top_k={settings.keyword_top_k}")
         kw_index = await get_keyword_index()
         keyword_results = await kw_index.search(query, settings.keyword_top_k)
+        logger.info(f"Got {len(keyword_results)} keyword results")
         
-        # Simple RR F merge
+        logger.info(f"Merging {len(vector_results)} vector + {len(keyword_results)} keyword candidates")
         candidates = merge_candidates(vector_results, keyword_results, alpha=settings.alpha)
         
-        # Rerank
+        logger.info(f"Reranking {len(candidates)} candidates")
         reranker = get_reranker()
         reranked = reranker.rerank(query, candidates)
+        logger.info(f"Reranked top {len(reranked)}")
         
         final_docs = [r["doc"]["text"] for r in reranked]
         scores = [r["score"] for r in reranked]
         results = {"documents": final_docs, "scores": scores}
+
     
     await cache_client.cache_query(query, results, settings.cache_ttl_query)
     return results
