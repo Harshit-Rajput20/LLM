@@ -5,6 +5,10 @@ WORKDIR /app
 # Copy requirements first for better Docker layer caching
 COPY requirements.txt .
 
+RUN apt-get update && apt-get install -y \
+    libpq-dev \
+    gcc
+
 # Install dependencies
 RUN pip install -r requirements.txt
 
@@ -18,5 +22,5 @@ EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8001/health || exit 1
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["python", "main.py"]
 

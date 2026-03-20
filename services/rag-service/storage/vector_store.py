@@ -18,7 +18,8 @@ class QdrantVectorStore:
 
     def _create_collection(self):
         """Create collection if not exists."""
-        if not self.client.has_collection(self.COLLECTION_NAME):
+        collections = self.client.get_collections()
+        if self.COLLECTION_NAME not in [c.name for c in collections.collections]:
             self.client.create_collection(
                 collection_name=self.COLLECTION_NAME,
                 vectors_config=VectorParams(size=settings.embedding_dim, distance=Distance.COSINE)

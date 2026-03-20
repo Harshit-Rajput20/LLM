@@ -21,10 +21,11 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U rag_user rag_metadata"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      test: ["CMD-SHELL", "pg_isready -U rag_user -d rag_metadata"]
+      interval: 20s
+      timeout: 20s
+      start_period: 60s
+      retries: 20
 
   minio:
     image: quay.io/minio/minio:latest
@@ -52,9 +53,11 @@ services:
     volumes:
       - qdrantdata:/qdrant/storage
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333"]
-      interval: 30s
-      retries: 3
+      test: ["CMD-SHELL", "curl -f http://localhost:6333 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 30
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.15.1
@@ -69,7 +72,9 @@ services:
       - "9200:9200"
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=1s"] 
-      retries: 10
+      interval: 30s
+      timeout: 30s
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -82,7 +87,7 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      retries: 5
+      retries: 10
 
   api-gateway:
     build: ./services/api-gateway
@@ -103,14 +108,22 @@ services:
     build: ./services/rag-service
     ports:
       - "8001:8001"
+    volumes:
+      - ./services/rag-service:/app
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8001 --reload
     depends_on:
-      - postgres
-      - minio
-      - qdrant
-      - elasticsearch
-      - redis
+      postgres:
+        condition: service_started
+      minio:
+        condition: service_started  
+      qdrant:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
+      redis:
+        condition: service_started
     environment:
-      POSTGRES_URL: postgresql://rag_user:rag_pass@postgres:5432/rag_metadata
+      POSTGRES_URL: postgresql+psycopg://rag_user:rag_pass@postgres:5432/rag_metadata
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -132,3 +145,4 @@ services:
     build: ./services/response-processor
     ports:
       - "8004:8004"
+

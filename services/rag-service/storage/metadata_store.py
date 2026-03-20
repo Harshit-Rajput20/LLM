@@ -1,15 +1,15 @@
-"""PostgreSQL metadata store using SQLAlchemy async."""
+"""PostgreSQL metadata store using SQLAlchemy 2.0."""
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy import String, JSON, Integer
-from typing import List, Optional
+import logging
+from sqlalchemy import create_engine, String, JSON, Integer
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
+from typing import Optional
 from config import settings
 
+logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     pass
-
 
 class ChunkMetadata(Base):
     __tablename__ = "chunk_metadata"
@@ -20,38 +20,42 @@ class ChunkMetadata(Base):
     page_num: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     chunk_metadata: Mapped[dict] = mapped_column(JSON)
 
-
 class MetadataStore:
-    """Async Postgres metadata."""
+    """Postgres metadata store."""
 
     def __init__(self):
-        self.engine = create_async_engine(settings.postgres_url)
-        self.session_maker = async_sessionmaker(self.engine, expire_on_commit=False)
+        self.engine = create_engine(settings.postgres_url)
+        self.session_maker = sessionmaker(self.engine)
 
-    async def create_tables(self):
-        async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
+    def create_tables(self):
+        Base.metadata.create_all(self.engine)
 
-    async def store_chunk_metadata(self, session: AsyncSession, metadata: dict):
+    def store_chunk_metadata(self, metadata: dict):
         """Store chunk metadata."""
-        record = ChunkMetadata(**metadata)
-        session.add(record)
+        with self.session_maker() as session:
+            record = ChunkMetadata(**metadata)
+            session.add(record)
+            session.commit()
 
-    async def get_chunk_metadata(self, session: AsyncSession, chunk_id: str) -> Optional[dict]:
+    def get_chunk_metadata(self, chunk_id: str) -> Optional[dict]:
         """Get metadata by ID."""
-        result = await session.get(ChunkMetadata, chunk_id)
-        if result:
-            return {c.name: getattr(result, c.name) for c in result.__table__.columns if c.name != 'chunk_id'}
-        return None
-
+        with self.session_maker() as session:
+            result = session.get(ChunkMetadata, chunk_id)
+            if result:
+                return {
+                    "document_id": result.document_id,
+                    "filename": result.filename,
+                    "page_num": result.page_num,
+                    "chunk_metadata": result.chunk_metadata
+                }
+            return None
 
 _metadata_store = None
 
-
-async def get_metadata_store() -> MetadataStore:
+def get_metadata_store() -> MetadataStore:
     global _metadata_store
     if _metadata_store is None:
         _metadata_store = MetadataStore()
-        await _metadata_store.create_tables()
+        _metadata_store.create_tables()
     return _metadata_store
 
