@@ -24,17 +24,46 @@ class QuizRequest(BaseModel):
 
 @app.post("/quiz")
 async def quiz(request: QuizRequest):
+    print(f"INFO: Gateway quiz request: topic='{request.topic}' nq={request.num_questions}")
     async with httpx.AsyncClient(timeout=180) as client:
+        context_list = []
+        # RAG retrieve for quiz context
         try:
+            print("INFO: RAG retrieve for quiz topic...")
+            rag_resp = await client.post(
+                f"{RAG_SERVICE_URL}/retrieve",
+                json={"query": request.topic, "top_k": 5}
+            )
+            if rag_resp.status_code == 200:
+                rag_data = rag_resp.json()
+                context_list = rag_data.get("documents", [])
+                print(f"INFO: RAG returned {len(context_list)} docs")
+            else:
+                print(f"WARNING: RAG failed for quiz: {rag_resp.status_code}")
+        except Exception as e:
+            print(f"WARNING: RAG error for quiz: {str(e)}")
+
+        # Call quiz-service with context
+        try:
+            print(f"INFO: Calling quiz-service with context len={len(context_list)}")
             quiz_resp = await client.post(
                 f"{QUIZ_SERVICE_URL}/generate_quiz",
-                json=request.dict()
+                json={
+                    "topic": request.topic,
+                    "num_questions": request.num_questions,
+                    "difficulty": request.difficulty,
+                    "context": "\n\n".join(context_list)
+                }
             )
+            print(f"INFO: Quiz-service status: {quiz_resp.status_code}")
             if quiz_resp.status_code == 200:
-                return quiz_resp.content  # Pass PDF bytes
+                print("INFO: Quiz PDF generated successfully")
+                return StreamingResponse(quiz_resp.content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=quiz_{request.topic.replace(' ', '_')}.pdf"})
             else:
+                print(f"ERROR: Quiz-service failed: {quiz_resp.text[:200]}")
                 raise HTTPException(500, "Quiz generation failed")
         except Exception as e:
+            print(f"ERROR: Quiz error: {str(e)}")
             raise HTTPException(500, f"Quiz error: {str(e)}")
 
 

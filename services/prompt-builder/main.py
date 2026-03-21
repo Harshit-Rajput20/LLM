@@ -47,34 +47,41 @@ async def build_prompt(request_data: dict):
 
 @app.post("/build_quiz_prompt")
 async def build_quiz_prompt(request_data: dict):
-    """Build quiz-specific prompt."""
+    """Build quiz-specific prompt optimized for small LLMs."""
+    
     topic = request_data.get("topic", "")
     num_questions = request_data.get("num_questions", 5)
     difficulty = request_data.get("difficulty", "medium")
+    context = request_data.get("context", "")
+
+    context_part = f"Context:\n{context}\n\n" if context else ""
 
     quiz_prompt = f"""
-You are an expert quiz generator. Create exactly {num_questions} multiple-choice questions on the topic: "{topic}" at {difficulty} difficulty level.
+    {context_part}Generate {num_questions} MCQ questions about: {topic}
+    Difficulty: {difficulty}
 
-STRICT RULES:
-1. EXACTLY 4 options per question (A, B, C, D).
-2. EXACTLY ONE correct option per question.
-3. If concept has multiple correct aspects, COMBINE into ONE option (e.g., "Both A and C", "All of the above").
-4. Questions must test understanding, not trivia.
-5. Use your knowledge up to cutoff; be accurate.
+    RULES:
+    - Return ONLY JSON
+    - No explanation, no text outside JSON
+    - Each question has EXACTLY 4 options
+    - Options must be labeled A, B, C, D
+    - Only ONE correct answer
+    - Use ONLY the context
 
-Output ONLY valid JSON array, no other text:
-[
-  {{
-    "question": "Full question text?",
-    "options": [
-      "A) Option one",
-      "B) Option two", 
-      "C) Option three (or 'A, B and D' if combined)",
-      "D) Option four"
-    ],
-    "correct": "C"
-  }}
-  // exactly {num_questions} objects
-]
-"""
+    FORMAT:
+    [
+      {{
+        "question": "question text",
+        "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+        "correct": "A"
+      }}
+    ]
+
+    IMPORTANT:
+    - Output must start with [ and end with ]
+    - Do NOT add markdown or text
+
+    OUTPUT:
+    """
+    
     return {"quiz_prompt": quiz_prompt}
