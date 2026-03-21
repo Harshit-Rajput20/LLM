@@ -11,11 +11,10 @@ class Reranker:
     """BAAI/bge-reranker-large cross-encoder (query, doc) → score."""
 
     def __init__(self):
-        print(f"Loading reranker: {settings.reranker_model}")
-        self.model = CrossEncoder(settings.reranker_model)
+        print(f"Loading local reranker: {settings.reranker_model}")
+        self.model = CrossEncoder('./models_hf/reranker/bge-reranker-large')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        # self.model.to(self.device)  # CrossEncoder doesn't have .to()
-        print(f"Reranker on CPU")
+        print(f"Reranker loaded local on {self.device}")
 
 
     def rerank(self, query: str, docs: List[Dict], top_k: int = 5) -> List[Dict]:

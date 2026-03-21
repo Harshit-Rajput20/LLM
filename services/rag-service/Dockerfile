@@ -14,6 +14,7 @@ RUN pip install -r requirements.txt
 
 # Copy all source files
 COPY . .
+COPY models_hf ./models_hf
 
 # Expose port
 EXPOSE 8001

@@ -1,8 +1,0 @@
-# LLM Configuration
-LLM_PROVIDER=ollama
-LLM_API_URL=http://host.docker.internal:11434
-LLM_API_KEY=
-LLM_MODEL=tinyllama
-
-# Vector Store Configuration  
-VECTOR_STORE_DIR=/app/vector_store

@@ -11,12 +11,15 @@ class EmbeddingGenerator:
     """bge-base-en-v1.5 embeddings."""
 
     def __init__(self):
-        print(f"Loading: {settings.embedding_model}")
-        self.model = SentenceTransformer(settings.embedding_model)
+        print(f"Loading local: {settings.embedding_model}")
+        self.model = SentenceTransformer(
+            './models_hf/embeddings/bge-base-en-v1.5',
+            local_files_only=True
+        )
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.to(self.device)
         self.dim = settings.embedding_dim
-        print(f"Loaded on {self.device}, dim {self.dim}")
+        print(f"Loaded local on {self.device}, dim {self.dim}")
 
     def encode_texts(self, texts: List[str]) -> np.ndarray:
         if not texts:
