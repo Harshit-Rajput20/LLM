@@ -56,7 +56,9 @@ async def retrieve_pipeline(query: str, top_k: int = 5, hybrid: bool = True) -> 
         logger.info(f"Got {len(keyword_results)} keyword results")
         
         logger.info(f"Merging {len(vector_results)} vector + {len(keyword_results)} keyword candidates")
-        candidates = merge_candidates(vector_results, keyword_results, alpha=settings.alpha)
+        alpha = getattr(settings, 'alpha', 0.7)
+        candidates = merge_candidates(vector_results, keyword_results, alpha=alpha)
+
         
         logger.info(f"Reranking {len(candidates)} candidates")
         reranker = get_reranker()
@@ -75,17 +77,32 @@ async def retrieve_pipeline(query: str, top_k: int = 5, hybrid: bool = True) -> 
 def merge_candidates(vec_results: List[Dict], kw_results: List[Dict], alpha: float = 0.7) -> List[Dict]:
     """Reciprocal Rank Fusion."""
     scores = {}
-    all_chunks = set(r["payload"]["chunk_id"] for r in vec_results) | set(r["payload"]["chunk_id"] for r in kw_results)
-    
+    all_chunks = set(r["payload"].get("chunk_id") for r in vec_results) | set(r.get("payload", {}).get("chunk_id") for r in kw_results)
+
     for chunk_id in all_chunks:
-        vec_score = next((r["score"] for r in vec_results if r["payload"]["chunk_id"] == chunk_id), 0)
-        kw_score = next((r["score"] for r in kw_results if r["payload"]["chunk_id"] == chunk_id), 0)
+        vec_score = next((r["score"] for r in vec_results if r["payload"].get("chunk_id") == chunk_id), 0)
+        kw_score = next((r["score"] for r in kw_results if r.get("payload", {}).get("chunk_id") == chunk_id), 0)
         fused_score = alpha * vec_score + (1 - alpha) * kw_score
         scores[chunk_id] = fused_score
+
     
     # Get top chunks
     sorted_chunks = sorted(scores, key=scores.get, reverse=True)[:20]  # pre-rerank
-    # Fetch full payloads (simplified, assume passed)
-    return [{"text": f"chunk_{cid}", "id": cid} for cid in sorted_chunks]
+
+    # Find best matching payload for each chunk_id
+    rerank_candidates = []
+    for cid in sorted_chunks:
+        # Find in vector results (prefer since has full payload)
+        best_match = next((r for r in vec_results if r["payload"].get("chunk_id") == cid), None)
+        if not best_match:
+            best_match = next((r for r in kw_results if r.get("payload", {}).get("chunk_id") == cid), None)
+        if best_match:
+            text = best_match["payload"].get("text", f"chunk_{cid}")
+        else:
+            text = f"chunk_{cid}"
+        rerank_candidates.append({"text": text, "chunk_id": cid})
+    
+    return rerank_candidates
+
 
 

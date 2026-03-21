@@ -38,13 +38,15 @@ class QdrantVectorStore:
 
     async def search(self, query_vector: List[float], top_k: int) -> List[Dict]:
         """Cosine similarity search."""
+
         results = self.client.search(
             collection_name=self.COLLECTION_NAME,
             query_vector=query_vector,
             limit=top_k,
             with_payload=True,
-            score_threshold=0.7
+            score_threshold=0.0
         )
+
         return [{"score": r.score, "payload": r.payload} for r in results]
 
 

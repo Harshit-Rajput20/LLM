@@ -14,8 +14,9 @@ class Reranker:
         print(f"Loading reranker: {settings.reranker_model}")
         self.model = CrossEncoder(settings.reranker_model)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
-        self.model.to(self.device)
-        print(f"Reranker on {self.device}")
+        # self.model.to(self.device)  # CrossEncoder doesn't have .to()
+        print(f"Reranker on CPU")
+
 
     def rerank(self, query: str, docs: List[Dict], top_k: int = 5) -> List[Dict]:
         """Rerank candidates: [(query, doc_text) pairs] → top_k scored docs."""
