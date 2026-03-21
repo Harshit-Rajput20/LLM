@@ -285,6 +285,51 @@ chat → api-gateway → prompt-builder → llm-client → rag-service/retrieve
 
 **Swagger UI:** http://localhost:8000/docs
 
+## Quiz Generation (API Gateway Port 8000)
+**POST http://localhost:8000/quiz** - **Generate MCQ Quiz PDF**
+
+**Full Flow:** api-gateway → quiz-service → prompt-builder (quiz prompt) → llm-client → PDF formatter → Download
+
+**Postman Test:**
+1. **Method:** POST
+2. **URL:** `http://localhost:8000/quiz`
+3. **Headers:** `Content-Type: application/json`
+4. **Body (JSON):**
+```json
+{
+  "topic": "Python OOP",
+  "num_questions": 5,
+  "difficulty": "medium"
+}
+```
+5. **Response:** PDF binary (auto-download as `quiz_Python_OOP.pdf`)
+
+**Expected PDF Format:**
+```
+Quiz: Python OOP (medium)
+
+q1 What is inheritance?
+A) ...
+B) ...
+C) ...
+D) ...
+
+...
+
+Answer Key:
+q1: B
+q2: A
+...
+```
+
+**Prerequisites:** `docker compose up api-gateway quiz-service prompt-builder llm-client`
+
+**Test Sequence:**
+1. Health: GET `http://localhost:8000/health`
+2. Quiz POST as above → Save PDF → Verify format/answer key
+
+**Swagger:** http://localhost:8000/docs → Quiz endpoint
+
 
 
 

@@ -146,3 +146,14 @@ services:
     ports:
       - "8004:8004"
 
+  quiz-service:
+    build: ./services/quiz-service
+    ports:
+      - "8005:8005"
+    environment:
+      - PROMPT_BUILDER_URL=http://prompt-builder:8002
+      - LLM_CLIENT_URL=http://llm-client:8003
+    depends_on:
+      - prompt-builder
+      - llm-client
+

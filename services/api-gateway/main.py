@@ -13,6 +13,29 @@ RAG_SERVICE_URL = os.getenv("RAG_SERVICE_URL", "http://rag-service:8001")
 LLM_CLIENT_URL = os.getenv("LLM_CLIENT_URL", "http://llm-client:8003")
 PROMPT_BUILDER_URL = os.getenv("PROMPT_BUILDER_URL", "http://prompt-builder:8002")
 RESPONSE_PROCESSOR_URL = os.getenv("RESPONSE_PROCESSOR_URL", "http://response-processor:8004")
+QUIZ_SERVICE_URL = os.getenv("QUIZ_SERVICE_URL", "http://quiz-service:8005")
+
+
+class QuizRequest(BaseModel):
+    topic: str
+    num_questions: int = 5
+    difficulty: str = "medium"
+
+
+@app.post("/quiz")
+async def quiz(request: QuizRequest):
+    async with httpx.AsyncClient(timeout=180) as client:
+        try:
+            quiz_resp = await client.post(
+                f"{QUIZ_SERVICE_URL}/generate_quiz",
+                json=request.dict()
+            )
+            if quiz_resp.status_code == 200:
+                return quiz_resp.content  # Pass PDF bytes
+            else:
+                raise HTTPException(500, "Quiz generation failed")
+        except Exception as e:
+            raise HTTPException(500, f"Quiz error: {str(e)}")
 
 
 class ChatRequest(BaseModel):
