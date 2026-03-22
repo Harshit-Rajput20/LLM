@@ -19,7 +19,7 @@ class RAGSettings(BaseSettings):
     
     # Models
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "BAAI/bge-base-en-v1.5")
-    reranker_model: str = os.getenv("RERANKER_MODEL", "BAAI/bge-reranker-large")
+    reranker_model: str = os.getenv("RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-12-v2")
     embedding_dim: int = 768  # bge-base
     
     # Retrieval params

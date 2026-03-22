@@ -1,4 +1,4 @@
-"""Reranker using bge-reranker-large."""
+"""Reranker using cross-encoder/ms-marco-MiniLM-L-12-v2."""
 
 from sentence_transformers import CrossEncoder
 from typing import List, Dict
@@ -8,11 +8,11 @@ import numpy as np
 
 
 class Reranker:
-    """BAAI/bge-reranker-large cross-encoder (query, doc) → score."""
+    """Cross-encoder reranker (query, doc) → score."""
 
     def __init__(self):
-        print(f"Loading local reranker: {settings.reranker_model}")
-        self.model = CrossEncoder('./models_hf/reranker/bge-reranker-large')
+        print(f"Loading local reranker from full folder")
+        self.model = CrossEncoder('./models_hf/reranker/ms-marco-MiniLM-L-12-v2-full')
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Reranker loaded local on {self.device}")
 
