@@ -14,7 +14,7 @@ RUN pip install -r requirements.txt
 
 # Copy all source files
 COPY . .
-COPY models_hf ./models_hf
+COPY models_local ./models_local
 
 # Expose port
 EXPOSE 8001
@@ -23,5 +23,6 @@ EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:8001/health || exit 1
 
+ENV HF_HUB_OFFLINE=1
 CMD ["python", "main.py"]
 

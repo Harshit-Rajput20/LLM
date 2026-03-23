@@ -2,7 +2,7 @@
 
 from typing import List, Tuple
 import numpy as np
-from embedding_generator import get_embedding_generator
+from utils.embeddings import get_embedding_generator
 from vector_store import get_vector_store
 
 

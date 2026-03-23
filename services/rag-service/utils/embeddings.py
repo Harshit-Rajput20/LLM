@@ -5,15 +5,19 @@ from typing import List
 import numpy as np
 import torch
 from config import settings
+import os
 
 
 class EmbeddingGenerator:
     """bge-base-en-v1.5 embeddings."""
 
     def __init__(self):
-        print(f"Loading local: {settings.embedding_model}")
+        embedding_path = './models_local/embeddings/bge-base-en-v1.5'
+        if not os.path.exists(f"{embedding_path}/config.json") or not os.path.exists(f"{embedding_path}/model.safetensors"):
+            raise ValueError(f"Missing embedding model files in {embedding_path}. Expected config.json and model.safetensors.")
+        print(f"Loading local embedding model from {embedding_path}")
         self.model = SentenceTransformer(
-            './models_hf/embeddings/bge-base-en-v1.5',
+            embedding_path,
             local_files_only=True
         )
         self.device = "cuda" if torch.cuda.is_available() else "cpu"

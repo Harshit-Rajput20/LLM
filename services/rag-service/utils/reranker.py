@@ -1,5 +1,6 @@
 """Reranker using cross-encoder/ms-marco-MiniLM-L-12-v2."""
 
+import os
 from sentence_transformers import CrossEncoder
 from typing import List, Dict
 import torch
@@ -11,8 +12,11 @@ class Reranker:
     """Cross-encoder reranker (query, doc) → score."""
 
     def __init__(self):
-        print(f"Loading local reranker from full folder")
-        self.model = CrossEncoder('./models_hf/reranker/ms-marco-MiniLM-L-12-v2-full')
+        reranker_path = './models_local/reranker/ms-marco-MiniLM-L-12-v2-full'
+        if not os.path.exists(f"{reranker_path}/config.json") or not os.path.exists(f"{reranker_path}/model.safetensors"):
+            raise ValueError(f"Missing reranker model files in {reranker_path}. Expected config.json and model.safetensors.")
+        print(f"Loading local reranker from {reranker_path}")
+        self.model = CrossEncoder(reranker_path)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         print(f"Reranker loaded local on {self.device}")
 
